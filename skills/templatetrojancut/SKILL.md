@@ -1,13 +1,14 @@
 ---
 name: templatetrojancut
-description: Hands the user the blank TrojanCut project template (TrojanCut-Project.zip) with step-by-step instructions for filling it in and sending it to /trojancut. Use when the user types /templatetrojancut or asks for the TrojanCut template or how to start a TrojanCut edit. Needs no network and no installs; it only copies a bundled file.
+description: Hands the user the blank TrojanCut project template (TrojanCut-Project.zip) with step-by-step instructions for filling it in and sending it to /trojancut. Use when the user types /templatetrojancut or asks for the TrojanCut template or how to start a TrojanCut edit. Needs no network and no installs; it only zips a bundled template folder with a small script.
 ---
 
 # TrojanCut template
 
-First copy `TrojanCut-Project.zip` from this skill's folder to `/mnt/user-data/outputs/` when that
-folder exists (claude.ai); otherwise (Claude Code) copy it to the current folder. Do not run
-anything else and do not install anything. Then give the user the file and reply with these steps,
+First run `python3 scripts/make_template.py DEST` from this skill's folder, where DEST is
+`/mnt/user-data/outputs` when that folder exists (claude.ai), otherwise (Claude Code) the current
+folder. It only zips the bundled template folder into `TrojanCut-Project.zip`. Do not run anything
+else and do not install anything. Then give the user the file and reply with these steps,
 in plain words:
 
 1. Download TrojanCut-Project.zip, right-click it > Extract All.

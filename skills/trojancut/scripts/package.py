@@ -1,5 +1,6 @@
 """`package --out D` (both skill ZIPs) and `install-skills --dest D` (copy both skills into a skills folder)."""
 import filecmp
+import io
 import shutil
 import zipfile
 from pathlib import Path
@@ -35,12 +36,21 @@ def write_zip(dest, top, files, extra=()):
             zf.writestr(info, data)
 
 
+def template_entries():
+    """The template as plain files (claude.ai rejects skill zips that contain a zip); the skill's
+    scripts/make_template.py zips them back into exactly template_bytes()."""
+    with zipfile.ZipFile(io.BytesIO(template_bytes())) as zf:
+        names = zf.namelist()
+        files = [(f"template/TrojanCut-Project/{n}", zf.read(n)) for n in names]
+    return files + [("template/order.txt", ("\n".join(names) + "\n").encode())]
+
+
 def package(out):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     write_zip(out / "trojancut.zip", "trojancut", skill_files(SKILL_DIR))
     write_zip(out / "templatetrojancut.zip", "templatetrojancut",
-              [f for f in skill_files(TEMPLATE_SKILL) if f[1] != ZIP_NAME], extra=[(ZIP_NAME, template_bytes())])
+              [f for f in skill_files(TEMPLATE_SKILL) if f[1] != ZIP_NAME], extra=template_entries())
     for z in ("trojancut.zip", "templatetrojancut.zip"):
         size = (out / z).stat().st_size
         if size > 15 * 1024 * 1024:
@@ -83,6 +93,6 @@ def install_skills(dest):
     dest = Path(dest).expanduser()
     a = sync_tree(skill_files(SKILL_DIR), dest / "trojancut")
     b = sync_tree([f for f in skill_files(TEMPLATE_SKILL) if f[1] != ZIP_NAME], dest / "templatetrojancut",
-                  extra=[(ZIP_NAME, template_bytes())])
+                  extra=template_entries())
     state = "updated" if (a or b) else "already up to date"
     print(f"skills trojancut and templatetrojancut {state} in {dest}")

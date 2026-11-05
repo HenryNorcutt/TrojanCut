@@ -3,6 +3,8 @@ import io
 import json
 import re
 import shutil
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -355,6 +357,14 @@ def test_templatetrojancut_skill(tmp_path, template):
     for bad in ("pip install", "npm ", "curl ", "http://", "https://"):
         assert bad not in low, bad
     tc("package", "--out", tmp_path)
+    # claude.ai rejects skill uploads that contain a nested zip
+    for zname in ("trojancut.zip", "templatetrojancut.zip"):
+        with zipfile.ZipFile(tmp_path / zname) as zf:
+            assert not [n for n in zf.namelist() if n.lower().endswith(".zip")], zname
+    unpacked = tmp_path / "skill"
     with zipfile.ZipFile(tmp_path / "templatetrojancut.zip") as zf:
-        bundled = zf.read("templatetrojancut/TrojanCut-Project.zip")
-    assert bundled == template.read_bytes()
+        zf.extractall(unpacked)
+    made = tmp_path / "made"
+    subprocess.run([sys.executable, str(unpacked / "templatetrojancut" / "scripts" / "make_template.py"), str(made)],
+                   check=True, capture_output=True)
+    assert (made / "TrojanCut-Project.zip").read_bytes() == template.read_bytes()

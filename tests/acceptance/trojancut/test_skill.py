@@ -49,7 +49,9 @@ def test_templatetrojancut_zip(packaged):
         names = zf.namelist()
         assert all(n.startswith("templatetrojancut/") for n in names)
         assert "templatetrojancut/SKILL.md" in names
-        assert "templatetrojancut/TrojanCut-Project.zip" in names
+        assert "templatetrojancut/scripts/make_template.py" in names
+        assert "templatetrojancut/template/TrojanCut-Project/notes.txt" in names
+        assert not any(n.lower().endswith(".zip") for n in names)  # claude.ai rejects nested zips
         assert not any("node_modules" in n or n.endswith(".pyc") for n in names)
         check_desc(frontmatter(zf.read("templatetrojancut/SKILL.md").decode()), "templatetrojancut")
 
