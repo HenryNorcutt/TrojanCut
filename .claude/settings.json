@@ -1,0 +1,11 @@
+{
+  "permissions": { "deny": ["Edit(scripts/done.sh)", "Write(scripts/done.sh)", "Edit(.claude/**)", "Write(.claude/**)", "Edit(tests/e2e/**)", "Write(tests/e2e/**)"] },
+  "env": { "CLAUDE_CODE_GOAL_CHECKIN_MINUTES": "0", "BASH_DEFAULT_TIMEOUT_MS": "600000", "BASH_MAX_TIMEOUT_MS": "1800000" },
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Edit|Write|MultiEdit|NotebookEdit", "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-files.sh\"" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-bash.sh\"" }] }
+    ],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/done-check.sh\"", "timeout": 1800 }] }]
+  }
+}
