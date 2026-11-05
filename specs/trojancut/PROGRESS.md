@@ -15,3 +15,4 @@
 - 14:05 M4 green: D5 7, D7 19, D8 6 passed. project.py (template + open + notes.txt parser incl. older wording and free text), package.py (both ZIPs, install-skills), SKILL.md x2 (frontmatter: name + description only), setup.sh/setup.ps1, README, CLAUDE.md project note. Authorised test additions: frontmatter-key assertions in test_skill.py / test_template_open.py. Next: full done.sh, merge main, packet-evaluator.
 - 14:40 Merged main (no new commits). bash scripts/done.sh: ALL PASS, exit 0, 999 s. Next: packet-evaluator.
 - 14:55 packet-evaluator run 1: OVERALL FAIL only for post-plan edits to protected tests (frontmatter assertions). Reverted both files to 1fdc0c0; D5+D7 26 passed; protected diff vs 1fdc0c0 empty. Rerunning evaluator.
+- 14:35 packet-evaluator run 2: OVERALL PASS. Phase -> done. Opening PR.

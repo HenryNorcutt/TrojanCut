@@ -96,6 +96,11 @@ attempt 2 with system Chrome passed. 10 s transparent overlay: 9.8 s, ~1.2 GB.
 ## Turns and time
 - Wall clock ~5 h (09:18 - ~14:30 MST). Turns well under the 500 cap.
 
+## Packet-evaluator
+- Run 1: OVERALL FAIL, only because of the post-plan edits to protected tests (deviation 3); reverted.
+- Run 2 (after the revert, protected diff vs 1fdc0c0 exit 0): OVERALL PASS, every AB plus the E2E (specs/trojancut/VERDICT.md).
+- The evaluator ran as a separate `claude -p --agent packet-evaluator --model sonnet` process with Read/Grep/Glob/Bash only.
+
 ## Final done.sh run
 `bash scripts/done.sh` after the final code change: exit 0, wall 999 s, output:
 ```
