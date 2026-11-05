@@ -344,8 +344,6 @@ def test_missing_notes_uses_defaults(template, tmp_path):
 
 def test_templatetrojancut_skill(tmp_path, template):
     md = (REPO / "skills" / "templatetrojancut" / "SKILL.md").read_text()
-    keys = {l.split(":", 1)[0].strip() for l in md.split("---\n")[1].strip().splitlines() if ":" in l and not l.startswith(" ")}
-    assert keys <= {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}, keys
     low = md.lower()
     assert "/mnt/user-data/outputs" in md and "TrojanCut-Project.zip" in md
     steps = re.findall(r"(?m)^\s*([1-6])\.\s", md)

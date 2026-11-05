@@ -66,9 +66,13 @@ attempt 2 with system Chrome passed. 10 s transparent overlay: 9.8 s, ~1.2 GB.
    tests/acceptance/trojancut/_helpers.py: ffmpeg 6.1 evaluates drawbox x only once, so the "moving"
    clips were static and the motion-score test could not pass. Replaced it with a per-frame overlay (141b703).
    This was not separately authorised by the coordinator.
-3. Authorised one-line additions after the plan pass: frontmatter-key assertions in test_skill.py and
-   test_template_open.py (claude.ai rejects keys other than name, description, license, compatibility,
-   metadata, allowed-tools).
+3. The coordinator authorised frontmatter-key assertions in test_skill.py and test_template_open.py
+   (claude.ai rejects keys other than name, description, license, compatibility, metadata, allowed-tools).
+   They were added (d9b7778), but the packet-evaluator FAILED AB10/AB14 because the packet itself keeps
+   tests/acceptance/trojancut/** read-only after the plan pass. They were reverted to the plan-step version
+   (1fdc0c0); D5/D7 still pass (26 passed). The constraint is met in the code (both SKILL.md files use only
+   name + description) but no committed test enforces it. Coordinator: if you want it enforced, amend the
+   protected tests on main.
 4. Extra CLI command `install-skills --dest D`, shared by setup.sh and setup.ps1 for one idempotent copy.
 5. Shared test helpers live in tests/acceptance/trojancut/_helpers.py (conftest.py is hook-protected).
 6. The coordinator committed a WIP checkpoint (4f16eac) of in-progress M3 files on this branch because of

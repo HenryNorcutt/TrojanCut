@@ -24,7 +24,6 @@ def packaged(tmp_path_factory):
 
 
 def check_desc(fields, name):
-    assert set(fields) <= {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}, fields
     assert fields["name"] == name
     d = fields["description"]
     assert 0 < len(d) <= 1024 and "<" not in d and ">" not in d
