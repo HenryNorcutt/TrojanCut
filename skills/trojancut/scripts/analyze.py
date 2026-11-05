@@ -206,8 +206,8 @@ def analyze_refs(proj):
         median = statistics.median(inner) if inner else dur
         if not grid or grid["bpm"] <= 0:
             grid, src = audio.grid_from_period(60 / audio.bpm_from_shot(median), dur), "cuts"
-            for k in mfx.values():
-                k["on_beat_share"] = 0.0
+            for summary in mfx.values():
+                summary["on_beat_share"] = 0.0
         px = sample_rgb(path, dur)
         all_px.append(px)
         colour = colour_summary(px)
@@ -265,10 +265,13 @@ def pooled_motion(refs):
     for k in ("flash", "shake", "zoom", "ramp"):
         ev = [e for r in refs for e in r["motion"][k]["events"]]
         n_on = sum(r["motion"][k]["on_beat_share"] * len(r["motion"][k]["events"]) for r in refs)
+        kinds = [e.get("kind") for e in ev if e.get("kind")]
         out[k] = {"count": len(ev), "rate_per_10s": round(10 * len(ev) / total, 2),
                   "typical_duration": round(statistics.median([e["duration"] for e in ev]), 3) if ev else 0.0,
                   "strength": round(statistics.median([e["strength"] for e in ev]), 3) if ev else 0.0,
                   "on_beat_share": round(n_on / len(ev), 2) if ev else 0.0}
+        if kinds:
+            out[k]["kind"] = max(set(kinds), key=kinds.count)
     return out
 
 

@@ -67,3 +67,13 @@ Weak criteria ("make it work") require constant clarification.
 **These guidelines are working if:** fewer unnecessary changes in diffs, 
 fewer rewrites due to overcomplication, and clarifying questions come 
 before implementation rather than after mistakes.
+
+---
+
+# Project note: TrojanCut
+
+When someone asks to "set this up" (or install / set up TrojanCut) in this repo, run the setup
+script for their OS from the repo root: on Windows `powershell -ExecutionPolicy Bypass -File .\setup.ps1`,
+on macOS/Linux `bash setup.sh`. It installs ffmpeg, Python and Node if missing, runs
+`tc.py setup`, and copies both skills (trojancut, templatetrojancut) into the user's Claude Code
+skills folder. Then tell them to restart Claude Code and use /templatetrojancut and /trojancut.

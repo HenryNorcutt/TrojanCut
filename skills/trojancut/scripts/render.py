@@ -69,38 +69,38 @@ def fx_filters(shot, W, H, fps):
     flashes = [e for e in effects if e["type"] == "flash"]
     out = []
     if zooms or shakes:
-        # scale terms: punch in fast (25 % of the event) then ease back
+        # zoompan evaluates z/x/y per frame (crop's w/h would be fixed at the first frame). The window is
+        # never larger than the frame (z >= margin >= 1) and x/y are clamped inside it: no black borders.
         zt = []
         for e in zooms:
             a, d, s = e["at"] - st, e["duration"], e["strength"]
             up = max(0.06, 0.25 * d)
-            zt.append(f"if(between(t\\,{a:.4f}\\,{a + up:.4f})\\,{s:.4f}*sin(PI/2*(t-{a:.4f})/{up:.4f})\\,"
-                      f"if(between(t\\,{a + up:.4f}\\,{a + d:.4f})\\,{s:.4f}*0.5*(1+cos(PI*(t-{a + up:.4f})/"
+            zt.append(f"if(between(it\\,{a:.4f}\\,{a + up:.4f})\\,{s:.4f}*sin(PI/2*(it-{a:.4f})/{up:.4f})\\,"
+                      f"if(between(it\\,{a + up:.4f}\\,{a + d:.4f})\\,{s:.4f}*0.5*(1+cos(PI*(it-{a + up:.4f})/"
                       f"{d - up:.4f}))\\,0))")
-        z = "1+" + "+".join(zt) if zt else "1"
         mag = max([e["strength"] for e in shakes] or [0])
-        margin = 1.0 + 2.2 * mag + 0.02
+        margin = 1.0 + 2.4 * mag + (0.01 if shakes else 0.0)
+        z = f"{margin:.4f}*(1+" + ("+".join(zt) if zt else "0") + ")"
         jx, jy = [], []
         for k, e in enumerate(shakes):
             a, d = e["at"] - st, e["duration"]
             amp = e["strength"] * W
-            env = f"between(t\\,{a:.4f}\\,{a + d:.4f})*sin(PI*(t-{a:.4f})/{d:.4f})"
-            jx.append(f"{env}*{amp:.2f}*(sin(2*PI*11*t+{k})+0.5*sin(2*PI*17*t+{2 * k}))/1.5")
-            jy.append(f"{env}*{amp * 0.8:.2f}*(sin(2*PI*13*t+{k + 1})+0.5*sin(2*PI*7*t+{k}))/1.5")
+            env = f"between(it\\,{a:.4f}\\,{a + d:.4f})*sin(PI*(it-{a:.4f})/{d:.4f})"
+            jx.append(f"{env}*{amp:.2f}*(sin(2*PI*11*it+{k})+0.5*sin(2*PI*17*it+{2 * k}))/1.5")
+            jy.append(f"{env}*{amp * 0.8:.2f}*(sin(2*PI*13*it+{k + 1})+0.5*sin(2*PI*7*it+{k}))/1.5")
         sx = "+".join(jx) or "0"
         sy = "+".join(jy) or "0"
-        # upscale by `margin` (no borders for shake), zoom by cropping a smaller window then scaling back
-        BW, BH = even(W * margin), even(H * margin)
-        cw = f"({W}/({z}))"
-        ch = f"({H}/({z}))"
-        out.append(f"scale={BW}:{BH}:flags=bicubic")
-        out.append(f"crop=w='{cw}':h='{ch}':x='({BW}-{cw})/2+({sx})':y='({BH}-{ch})/2+({sy})'")
-        out.append(f"scale={W}:{H}:flags=bicubic")
+        x = f"max(0\\,min(iw-iw/zoom\\,iw/2-iw/zoom/2+({sx})))"
+        y = f"max(0\\,min(ih-ih/zoom\\,ih/2-ih/zoom/2+({sy})))"
+        out.append("setpts=PTS-STARTPTS")
+        out.append(f"zoompan=z='{z}':x='{x}':y='{y}':d=1:s={W}x{H}:fps={fps}")
         out.append("setsar=1")
     for e in flashes:
         a, d, s = e["at"] - st, e["duration"], e["strength"]
+        hold = 0.35 * d  # full white-ish for the first third, then a fast decay
         out.append(f"geq=lum='lum(X\\,Y)+(255-lum(X\\,Y))*{s:.3f}*if(between(T\\,{a:.4f}\\,{a + d:.4f})\\,"
-                   f"exp(-4*(T-{a:.4f})/{d:.4f})\\,0)':cb='cb(X\\,Y)':cr='cr(X\\,Y)'")
+                   f"if(lt(T-{a:.4f}\\,{hold:.4f})\\,1\\,exp(-4*(T-{a + hold:.4f})/{d - hold:.4f}))\\,0)':"
+                   f"cb='cb(X\\,Y)':cr='cr(X\\,Y)'")
     return out
 
 

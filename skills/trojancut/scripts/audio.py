@@ -70,8 +70,7 @@ def _parabolic(y, i):
 
 def _sample(env, t):
     """Max of env within +-1 frame around fractional frame positions t."""
-    i = np.round(t).astype(int)
-    i = i[(i >= 1) & (i < len(env) - 1)]
+    i = np.clip(np.round(t).astype(int), 1, len(env) - 2)  # clip, never drop: output aligns with t
     return np.maximum(np.maximum(env[i - 1], env[i]), env[i + 1]) if len(i) else np.zeros(0)
 
 
@@ -127,9 +126,9 @@ def beat_track(x):
         if len(ks) >= 4:
             A = np.vstack([np.ones(len(ks)), ks]).T
             phase, period = np.linalg.lstsq(A, np.array(ts), rcond=None)[0]
-    # onset frames lag the true onset slightly (window centre); compensate half a hop
     t0 = (phase * HOP + NFFT / 2 - HOP) / SR
     p_s = period * HOP / SR
+    t0, p_s = refine_on_waveform(x, t0, p_s, dur)
     t0 = t0 - p_s * math.floor(t0 / p_s)
     beats = np.arange(t0, dur - 1e-6, p_s)
     strength = _sample(e, (beats * SR - NFFT / 2 + HOP) / HOP)
@@ -139,6 +138,36 @@ def beat_track(x):
         down = int(np.argmax(sums))
     return {"bpm": round(60.0 / p_s, 2), "beats": [round(float(b), 4) for b in beats], "downbeat": down,
             "confidence": round(conf, 3), "duration": round(dur, 3), "period": p_s}
+
+
+def refine_on_waveform(x, t0, p, dur, fine=64):
+    """Sharpen phase and period: for each predicted beat, the steepest rise of the short-time level
+    (fine hop, ~3 ms) within +-20 % of a beat, then a least-squares line through those onsets."""
+    n = len(x) // fine
+    if n < 8:
+        return t0, p
+    lev = np.sqrt(np.mean(np.square(x[: n * fine].reshape(n, fine)), axis=1)) + 1e-6
+    rise = np.diff(np.log(lev), prepend=np.log(lev[0]))
+    rise = np.where(lev > 0.1 * np.percentile(lev, 95), rise, 0.0)
+    ks, ts = [], []
+    first = -math.floor(t0 / p)
+    for j in range(first, int((dur - t0) / p) + 1):
+        c = t0 + j * p
+        a, b = int((c - 0.2 * p) * SR / fine), int((c + 0.2 * p) * SR / fine) + 1
+        if a < 1 or b >= n:
+            continue
+        i = a + int(np.argmax(rise[a:b]))
+        if rise[i] < 0.3:
+            continue
+        ks.append(j)
+        ts.append((i + 0.5) * fine / SR)
+    if len(ks) < 6:
+        return t0, p
+    A = np.vstack([np.ones(len(ks)), ks]).T
+    (c0, c1), *_ = np.linalg.lstsq(A, np.array(ts), rcond=None)
+    if abs(c1 - p) > 0.02 * p:
+        return t0, p
+    return float(c0), float(c1)
 
 
 def grid_from_period(period, dur, phase=0.0):

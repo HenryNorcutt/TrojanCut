@@ -200,12 +200,11 @@ def place_fx(shots, beats, counts, pooled, period, width, soft_cuts):
 
     # ramps first: they need a long shot and no transitions at either edge
     nr = counts.get("ramp", 0)
-    kind = "slow"
-    for e in pooled.get("ramp", {}).get("events", []) if isinstance(pooled.get("ramp"), dict) else []:
-        kind = e.get("kind", kind)
-    cands = [i for i, s in enumerate(shots) if s["end"] - s["start"] >= max(1.0, 2 * period)
-             and s["transition"]["type"] == "cut" and (i + 1 >= len(shots) or shots[i + 1]["transition"]["type"] == "cut")
-             and i > 0]
+    kind = (pooled.get("ramp") or {}).get("kind", "slow")
+    long_enough = [i for i, s in enumerate(shots) if i > 0 and s["end"] - s["start"] >= max(1.0, 2 * period)]
+    hard = [i for i in long_enough if shots[i]["transition"]["type"] == "cut"
+            and (i + 1 >= len(shots) or shots[i + 1]["transition"]["type"] == "cut")]
+    cands = hard if len(hard) >= nr else long_enough
     for i in spread(nr, cands):
         s = shots[i]
         L = s["end"] - s["start"]
@@ -213,28 +212,35 @@ def place_fx(shots, beats, counts, pooled, period, width, soft_cuts):
         if not bts:
             continue
         mid = min(bts, key=lambda b: abs(b - L / 2))
-        extreme = 0.3 if kind == "slow" else 2.5
-        s["speed"] = [{"t": 0.0, "speed": 1.0}, {"t": round(mid, 4), "speed": extreme}, {"t": round(L, 4), "speed": 1.0}]
+        if kind == "fast":
+            # "velocity" ramp: fast in, slow-mo on the beat, fast out
+            keys = [(0.0, 2.0), (mid, 0.5), (L, 2.0)]
+        else:
+            keys = [(0.0, 1.0), (mid, 0.3), (L, 1.0)]
+        s["speed"] = [{"t": round(t, 4), "speed": v} for t, v in keys]
         used.add(i)
         taken.append((s["start"], s["end"]))
 
-    for typ in ("zoom", "flash", "shake"):
+    for typ in ("shake", "zoom", "flash"):  # longest first, so they still find room
         n = counts.get(typ, 0)
         info = pooled.get(typ, {}) if pooled else {}
         on_beat = info.get("on_beat_share", 1.0) >= 0.5 if info else True
         dur = {"flash": max(0.12, min(0.3, info.get("typical_duration", 0.15) or 0.15)),
                "zoom": max(0.35, min(0.6, (info.get("typical_duration", 0) or 0) + 0.3)),
                "shake": max(0.4, min(1.2, info.get("typical_duration", 0.6) or 0.6))}[typ]
-        strength = {"flash": max(0.5, min(0.85, info.get("strength", 0.6) or 0.6)),
+        strength = {"flash": max(0.6, min(0.85, info.get("strength", 0.7) or 0.7)),
                     "zoom": max(0.15, min(0.35, info.get("strength", 0.2) or 0.2)),
                     "shake": max(0.012, min(0.04, info.get("strength", 0.02) or 0.02))}[typ]
+        # ramp shots stay clean; other effects may share a shot as long as they do not overlap in time
         pool = [i for i in range(len(shots)) if i not in used and shots[i]["end"] - shots[i]["start"] >= dur + 0.5]
         placed = 0
+        tried = set()
         for i in spread(n, pool) + [p for p in pool]:
             if placed >= n:
                 break
-            if i in used:
+            if i in tried:
                 continue
+            tried.add(i)
             s = shots[i]
             times = [b for b in beat_in(s, 0.25, dur + 0.15, on_beat) if free(b, b + dur)]
             if not times:
@@ -242,7 +248,6 @@ def place_fx(shots, beats, counts, pooled, period, width, soft_cuts):
             t = times[len(times) // 2]
             s.setdefault("effects", []).append({"type": typ, "at": round(t, 4), "duration": round(dur, 3),
                                                 "strength": round(strength, 3)})
-            used.add(i)
             taken.append((t, t + dur))
             placed += 1
 
@@ -260,7 +265,8 @@ def autoplan(proj):
     clips = order_clips(idx["clips"], brief)
     total_footage = sum(c["duration"] for c in clips)
     target = min((min_s + max_s) / 2, max(min_s, 0.7 * total_footage))
-    shot_len = max(0.4, float(style["median_shot_seconds"]))
+    # a reference without cuts (one long take) says nothing about pace: cap at 4 s so the edit still cuts
+    shot_len = min(4.0, max(0.4, float(style["median_shot_seconds"])))
     ref_period = 60.0 / style["bpm"] if style.get("bpm") else 0.5
 
     songs, mode = resolve_music(brief, idx, style, proj, ref_period)
