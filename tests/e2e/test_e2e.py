@@ -155,3 +155,11 @@ def test_package(tmp_path):
     assert fields["name"].strip() == "trojancut"
     desc = fields["description"].strip()
     assert 0 < len(desc) <= 1024 and "<" not in desc and ">" not in desc
+    # claude.ai rejects skill uploads whose frontmatter has any other key ("Unexpected key(s)").
+    allowed = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+    for zname, skill in (("trojancut.zip", "trojancut"), ("templatetrojancut.zip", "templatetrojancut")):
+        with zipfile.ZipFile(tmp_path / zname) as zf:
+            md = zf.read(f"{skill}/SKILL.md").decode()
+        keys = {l.split(":", 1)[0].strip() for l in md.split("---\n")[1].splitlines()
+                if ":" in l and not l.startswith((" ", "\t"))}
+        assert "name" in keys and keys <= allowed, (zname, keys)

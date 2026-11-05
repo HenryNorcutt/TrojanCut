@@ -1,5 +1,5 @@
 # BUILD-PACKET: trojancut
-status: building
+status: done
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
 packet-version: 8    created: 2026-11-05
