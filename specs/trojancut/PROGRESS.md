@@ -9,3 +9,4 @@
 - 11:55 M1 green: D1 9 passed (exit 0). setup installs hyperframes@0.9.16 via npm ci --ignore-scripts into TROJANCUT_HOME, finds system Chrome, smoke-renders once, stamps; ingest indexes + contact sheets. Next: M2 analyze-refs.
 - 12:00 Merged packet v8 (AB18 motion fx). Reopened plan step to add test_motion_fx.py + D11 (authorised).
 - 12:25 D11 added (test_motion_fx.py, 14 tests): fails today (exit 1: 5 failed, 9 errors). Throwaway ffmpeg stub proved render-side measures can pass (flash +148 luma, ramp vel 133->42 px/s, shake jitter 56 vs 1.7, no borders). Fixtures verified by phase correlation. Plan step closed; phase -> building. M2 (D2 7 passed) committed next.
+- 12:30 M2 green: D2 7 passed (exit 0, 95 s). analyze-refs: scene-score cuts, numpy beat tracker, colour stats + 17^3 LUT, claude-video-derived frame dedupe, 60 KB budget with sidecars. Next: M3 (plan, render, check, music, sfx, motion fx).
