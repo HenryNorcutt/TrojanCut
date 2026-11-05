@@ -2,7 +2,7 @@
 status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 7    created: 2026-11-05
+packet-version: 8    created: 2026-11-05
 v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
   rewritten). Q&A in chat is only the fallback.
 v3 change: a second skill, /templatetrojancut, hands out the template with step-by-step
@@ -15,7 +15,10 @@ v5 change: music is optional and may be several songs with chosen or auto-picked
 v6 change: sound effects are back IN: a built-in pack we synthesize ourselves plus the user's own
   sfx/ folder (AB17, D10); template gains sfx/ and two notes lines (AB12, AB13).
 v7 change: "Anything else:" is the last line of notes.txt and takes free text on any number of
-  lines below it (AB12, AB13, AB11). Everything else unchanged.
+  lines below it (AB12, AB13, AB11).
+v8 change: motion effects IN: speed ramps, camera shake, zoom punches, flashes, detected in the
+  references and applied in the edit, in both engines (AB18, D11). No new notes lines. Everything
+  else unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -192,6 +195,28 @@ AB17: Sound effects.
   prefers the user's file of a type over the built-in one. Claude may change placements in
   plan.json and validate checks every effect file exists. WHEN sfx_amount is none THE SYSTEM
   SHALL place no effects.
+AB18: Motion effects (speed ramps, camera shake, zoom punches, flashes).
+  (a) WHEN analyze-refs runs THE SYSTEM SHALL detect in each reference, with numpy + ffmpeg only:
+  flashes (short luma spikes), camera shake (high-frequency global translation, e.g. FFT phase
+  correlation between frames), zoom punches (fast scale change over a few frames) and speed
+  ramps (a clear change in global motion speed within one shot). It SHALL write per-type event
+  times, rates per 10 s, typical duration and strength, and how they line up with beats (on beat
+  / off beat) into style.json. Detection must find events at known times in synthetic references
+  and must not report them in a reference without them.
+  (b) WHEN autoplan runs with match "everything" (or "text"/"cuts" plus notes asking for them)
+  THE SYSTEM SHALL place each effect type at roughly the reference's rate and beat alignment,
+  scaled by effects_intensity (low 0.5x, medium 1x, high 1.5x). With no reference evidence, use
+  modest defaults for medium/high and none for low. Speed ramps SHALL be per-shot speed keyframes
+  (e.g. 1x -> 0.3x -> 1x or 2x -> 1x) timed so the slowest or hardest point lands on a beat. The
+  shot's source in/out is computed from the speed curve, so output length and the beat grid stay
+  exact. Shake, zoom punch and flash SHALL be timed events with strength and duration.
+  (c) WHEN render runs THE SYSTEM SHALL apply all four in the ffmpeg stage so both engines get
+  them: variable speed through timestamp remapping (frame blending allowed, no motion
+  interpolation, too slow on 2 cores), shake as jittered crop of a slightly upscaled frame,
+  zoom punch as a fast eased scale-in and settle, flash as a short brightness/white overlay that
+  decays. No black borders may appear during shake or zoom.
+  (d) Claude may edit these in plan.json. validate SHALL reject speeds outside 0.2x-4x, effects
+  outside the shot, and speed curves that need more source footage than the clip has.
 AB14: WHEN /templatetrojancut is invoked THE SKILL SHALL copy its bundled TrojanCut-Project.zip
   to /mnt/user-data/outputs (or the current folder in Claude Code), hand it to the user, and
   reply with these numbered steps in plain words (wording may differ, every step present):
@@ -227,6 +252,7 @@ E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pyt
 | D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, paths) | yes |
 | D9 | `python3 -m pytest tests/acceptance/trojancut/test_music.py -q` | exit 0 | AB16 (synthetic songs at different BPMs and pitches: order kept, chosen part used (check pitch/onsets at the expected output times), auto part lands in the loud window, cut vs fade measurable at the join, cuts follow each song's grid, none / reference audio / keep_clip_audio cases) | yes |
 | D10 | `python3 -m pytest tests/acceptance/trojancut/test_sfx.py -q` | exit 0 | AB17 (pack generated twice is byte-identical and under 3 MB, manifest matches files; user files classified by name and by shape with synthetic sharp/rising/sweep sounds; placement counts per amount; effects audible at planned times in the render (onset there); none = no effects; no clipping) | yes |
+| D11 | `python3 -m pytest tests/acceptance/trojancut/test_motion_fx.py -q` | exit 0 | AB18 (synthetic references with flashes/shake/zoom/ramp at known times detected within 0.1 s and none in a clean reference; rendered output measured: luma spike at each planned flash, translation jitter only in shake windows, scale change at zoom punches, moving-box speed in a ramped shot follows the keyframes, no black border pixels, output length unchanged; validate rejects bad speeds/curves) | yes |
 | D8 | `python3 -m pytest tests/acceptance/trojancut/test_install.py -q` | exit 0 | AB15 (setup.sh with HOME set to a temp dir installs both skills, second run is a no-op; setup.ps1 exists and references the same skill folders; CLAUDE.md keeps the verbatim guidelines intact above the project note) | yes |
 | D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13, AB14 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders; templatetrojancut SKILL.md has all six steps and its bundled zip equals `template` output) | yes |
 | D6 | `python3 -m pytest tests/e2e -q` | exit 0 | E2E | yes (verified by coordinator) |
@@ -240,7 +266,7 @@ M1 Skeleton + engine spike - AB1, AB2 - done when D1. Also render a 5 s HyperFra
    (dropping it is RESERVED).
 M2 Analysis - AB3, AB4 - done when D2. Frame sampling and near-duplicate removal adapted from
    bradautomates/claude-video (MIT; keep its notice in THIRD_PARTY_NOTICES.md).
-M3 Plan + render + check + music + sfx - AB5..AB9, AB16, AB17 - done when D3, D4, D6, D9, D10.
+M3 Plan + render + check + music + sfx + motion fx - AB5..AB9, AB16..AB18 - done when D3, D4, D6, D9, D10, D11.
 M4 Skills + template + packaging + install + docs - AB10..AB15 - done when D5, D6, D7, D8; README covers (a) chat install:
    download both skill ZIPs, Customize > Skills > upload each, turn on code execution,
    /templatetrojancut to get the template, fill it, zip it, /trojancut with the zip; (b) Claude Code
