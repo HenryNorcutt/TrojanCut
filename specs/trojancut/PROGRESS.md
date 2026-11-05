@@ -10,3 +10,4 @@
 - 12:00 Merged packet v8 (AB18 motion fx). Reopened plan step to add test_motion_fx.py + D11 (authorised).
 - 12:25 D11 added (test_motion_fx.py, 14 tests): fails today (exit 1: 5 failed, 9 errors). Throwaway ffmpeg stub proved render-side measures can pass (flash +148 luma, ramp vel 133->42 px/s, shake jitter 56 vs 1.7, no borders). Fixtures verified by phase correlation. Plan step closed; phase -> building. M2 (D2 7 passed) committed next.
 - 12:30 M2 green: D2 7 passed (exit 0, 95 s). analyze-refs: scene-score cuts, numpy beat tracker, colour stats + 17^3 LUT, claude-video-derived frame dedupe, 60 KB budget with sidecars. Next: M3 (plan, render, check, music, sfx, motion fx).
+- 13:20 M3 progress: D3 14 passed, D4 11 passed, E2E both engines passed (package pending M4). Planner holds the opening shot under the title. Next: D9 music, D10 sfx, D11 motion fx.
