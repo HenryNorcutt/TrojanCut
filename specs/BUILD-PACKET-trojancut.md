@@ -2,14 +2,17 @@
 status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 4    created: 2026-11-05
+packet-version: 5    created: 2026-11-05
 v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
   rewritten). Q&A in chat is only the fallback.
 v3 change: a second skill, /templatetrojancut, hands out the template with step-by-step
   instructions (AB14); `package` builds both skill ZIPs (AB10).
 v4 change: setup scripts install both skills for Claude Code (AB15); the GitHub Release is no
   longer RESERVED: the coordinator publishes it after verification (do not publish it yourself);
-  G2 tester is Henry's brother. Everything else unchanged.
+  G2 tester is Henry's brother.
+v5 change: music is optional and may be several songs with chosen or auto-picked parts and
+  cut/fade switches (AB16, D9); notes.txt music lines replaced (AB12); AB13 maps them.
+  Everything else unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -57,7 +60,8 @@ IN: the skill folder skills/trojancut/ (SKILL.md + scripts/), the tc.py CLI belo
   fallback), output check, ZIP packaging, README for Henry and his brother, setup.ps1 for Windows,
   THIRD_PARTY_NOTICES.md.
 OUT (non-goals): web UI, accounts, hosted rendering, speech transcription and captions, AI-generated
-  footage or voice, multiple output variants, Premiere/Resolve timeline export, 4K, YouTube/URL
+  footage or voice, tempo matching or time-stretching songs, lyric-aware cuts, drop-to-moment
+  syncing, sound effects, stem/vocal removal, multiple output variants, Premiere/Resolve timeline export, 4K, YouTube/URL
   downloads, GitHub releases.
 
 ## CLI contract (fixed by tests/e2e; greenfield, so stated here)
@@ -128,7 +132,11 @@ AB12: WHEN `template --out D` runs THE SYSTEM SHALL write TrojanCut-Project.zip 
     Shortest length in seconds: 15
     Longest length in seconds: 30
     Shape (vertical / horizontal / square): vertical
-    Music file (name in music folder, or "reference audio"):
+    Music (none / reference audio / my songs): my songs
+    Song order (file names separated by ;  blank = alphabetical):
+    Song parts (e.g. song1.mp3 0:45-1:15; song2.mp3 auto  blank = Claude picks):
+    Switch between songs (cut / quick fade / Claude decides): Claude decides
+    Keep sound from the clips (yes / no): no
     Copy from the references (cuts / color / text / everything): everything
     Effects amount (low / medium / high): medium
     Logo file (name in assets folder):
@@ -141,9 +149,22 @@ AB13: WHEN `open Z P` runs THE SYSTEM SHALL extract the zip(s) whether the folde
   zip root or inside one wrapper folder (Windows "Send to > Compressed folder"), ignore __MACOSX
   and dotfiles, merge several zips into one project, map notes.txt answers to brief.yaml
   (case-insensitive, extra spaces ignored, blank = default, "vertical" = 9:16, "everything" =
-  full), fill a missing logo/music answer when exactly one candidate file exists, and exit
+  full), map the music lines to brief.yaml (music stays a single path when there is exactly one
+  song with no chosen part; otherwise a list of {file, part: "auto" | [start_s, end_s]} plus
+  song_switch and keep_clip_audio; "my songs" with an empty music folder is an error; times
+  accept m:ss, mm:ss and seconds), fill a missing logo answer when exactly one candidate file
+  exists, and exit
   non-zero with a plain-English line naming the problem when notes.txt contradicts the files or
   a value is unreadable (e.g. shortest > longest).
+AB16: WHEN the brief lists several songs THE SYSTEM SHALL play them in the given order, each
+  using its chosen part or, for "auto", the highest-energy window (onset density and loudness)
+  of the length the plan needs, joined by a hard cut on a beat ("cut") or a fade of about one
+  beat that starts on a bar line ("quick fade"; "Claude decides" picks per pair and records why
+  in plan.json); the output's cuts SHALL follow the beat grid of whichever song is playing; with
+  music "none" the clips' own audio is kept; with "reference audio" the reference's soundtrack
+  is used; with keep_clip_audio yes, clip audio sits about 12 dB under the music. Chosen parts
+  that together fall outside min/max length are trimmed or looped to fit, and report.json says
+  which. No time-stretching or tempo matching (OUT).
 AB14: WHEN /templatetrojancut is invoked THE SKILL SHALL copy its bundled TrojanCut-Project.zip
   to /mnt/user-data/outputs (or the current folder in Claude Code), hand it to the user, and
   reply with these numbered steps in plain words (wording may differ, every step present):
@@ -177,6 +198,7 @@ E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pyt
 | D3 | `python3 -m pytest tests/acceptance/trojancut/test_plan.py -q` | exit 0 | AB5, AB6 | yes |
 | D4 | `python3 -m pytest tests/acceptance/trojancut/test_render.py -q` | exit 0 | AB7, AB8, AB9 | yes |
 | D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, paths) | yes |
+| D9 | `python3 -m pytest tests/acceptance/trojancut/test_music.py -q` | exit 0 | AB16 (synthetic songs at different BPMs and pitches: order kept, chosen part used (check pitch/onsets at the expected output times), auto part lands in the loud window, cut vs fade measurable at the join, cuts follow each song's grid, none / reference audio / keep_clip_audio cases) | yes |
 | D8 | `python3 -m pytest tests/acceptance/trojancut/test_install.py -q` | exit 0 | AB15 (setup.sh with HOME set to a temp dir installs both skills, second run is a no-op; setup.ps1 exists and references the same skill folders; CLAUDE.md keeps the verbatim guidelines intact above the project note) | yes |
 | D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13, AB14 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders; templatetrojancut SKILL.md has all six steps and its bundled zip equals `template` output) | yes |
 | D6 | `python3 -m pytest tests/e2e -q` | exit 0 | E2E | yes (verified by coordinator) |
@@ -190,7 +212,7 @@ M1 Skeleton + engine spike - AB1, AB2 - done when D1. Also render a 5 s HyperFra
    (dropping it is RESERVED).
 M2 Analysis - AB3, AB4 - done when D2. Frame sampling and near-duplicate removal adapted from
    bradautomates/claude-video (MIT; keep its notice in THIRD_PARTY_NOTICES.md).
-M3 Plan + render + check - AB5..AB9 - done when D3, D4, D6.
+M3 Plan + render + check + music - AB5..AB9, AB16 - done when D3, D4, D6, D9.
 M4 Skills + template + packaging + install + docs - AB10..AB15 - done when D5, D6, D7, D8; README covers (a) chat install:
    download both skill ZIPs, Customize > Skills > upload each, turn on code execution,
    /templatetrojancut to get the template, fill it, zip it, /trojancut with the zip; (b) Claude Code
