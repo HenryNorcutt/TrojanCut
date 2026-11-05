@@ -39,7 +39,8 @@ def test_setup_sh_installs_both_skills(installed):
     assert (skills / "trojancut" / "scripts" / "tc.py").exists()
     assert (skills / "trojancut" / "sfx" / "manifest.json").exists()
     assert (skills / "templatetrojancut" / "SKILL.md").exists()
-    assert (skills / "templatetrojancut" / "TrojanCut-Project.zip").exists()
+    assert (skills / "templatetrojancut" / "scripts" / "make_template.py").exists()
+    assert (skills / "templatetrojancut" / "template" / "TrojanCut-Project" / "notes.txt").exists()
     assert not any("node_modules" in str(p) or p.suffix == ".pyc" for p in skills.rglob("*"))
 
 

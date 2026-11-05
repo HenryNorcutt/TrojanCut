@@ -160,6 +160,8 @@ def test_package(tmp_path):
     for zname, skill in (("trojancut.zip", "trojancut"), ("templatetrojancut.zip", "templatetrojancut")):
         with zipfile.ZipFile(tmp_path / zname) as zf:
             md = zf.read(f"{skill}/SKILL.md").decode()
+            # claude.ai also rejects skill uploads that contain a nested zip
+            assert not [n for n in zf.namelist() if n.lower().endswith(".zip")], zname
         keys = {l.split(":", 1)[0].strip() for l in md.split("---\n")[1].splitlines()
                 if ":" in l and not l.startswith((" ", "\t"))}
         assert "name" in keys and keys <= allowed, (zname, keys)
