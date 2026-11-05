@@ -1,6 +1,6 @@
 {
  "packet": "trojancut",
- "packet_version": 6,
+ "packet_version": 7,
  "architecture": {
   "cli": "skills/trojancut/scripts/tc.py (argparse dispatcher) + modules: common.py (paths, ffprobe, brief, errors), ingest.py, analyze.py (cuts, beats, colour, LUT, frames+dedup adapted from claude-video), music.py (song analysis, parts, switches), sfx.py (classification, placement), make_sfx.py (deterministic built-in pack), planner.py (autoplan), validate.py, render.py (ffmpeg base + audio mix + engines), hf.py (HyperFrames overlay composition), check.py, project.py (template, open, notes.txt mapping), package.py (both skill ZIPs, install-skills)",
   "engines": "Both engines build the graded base video (per-shot segments -> concat/xfade) and the audio mix with ffmpeg. HyperFrames renders a transparent PNG-sequence overlay (animated title, animated logo, transition accents) composited over the base; ffmpeg engine overlays static Pillow-rendered title and logo PNGs. auto falls back to ffmpeg when HyperFrames is not usable or its render fails; report.json records engine and fallback reason.",
@@ -154,6 +154,7 @@
   "Songs not named in 'Song order' play after the named ones, alphabetically.",
   "Brief keys absent -> defaults: music none when absent, sfx_amount some, sfx_source both, song_switch auto, keep_clip_audio false.",
   "Stills in footage/ are indexed as images but not cut into the edit (v1).",
-  "chrome-headless-shell cannot be downloaded on this VM; system Chrome is used via HYPERFRAMES_BROWSER_PATH detection."
+  "chrome-headless-shell cannot be downloaded on this VM; system Chrome is used via HYPERFRAMES_BROWSER_PATH detection.",
+  "notes.txt: questions matched by leading words before any parenthesis (case-insensitive); everything after the 'Anything else' line is kept verbatim as brief.yaml notes."
  ]
 }

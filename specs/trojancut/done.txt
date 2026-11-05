@@ -1,0 +1,10 @@
+python3 -m pytest tests/acceptance/trojancut/test_setup_ingest.py -q
+python3 -m pytest tests/acceptance/trojancut/test_analyze.py -q
+python3 -m pytest tests/acceptance/trojancut/test_plan.py -q
+python3 -m pytest tests/acceptance/trojancut/test_render.py -q
+python3 -m pytest tests/acceptance/trojancut/test_skill.py -q
+python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q
+python3 -m pytest tests/acceptance/trojancut/test_install.py -q
+python3 -m pytest tests/acceptance/trojancut/test_music.py -q
+python3 -m pytest tests/acceptance/trojancut/test_sfx.py -q
+python3 -m pytest tests/e2e -q

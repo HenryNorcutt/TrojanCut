@@ -1,8 +1,9 @@
 {
   "packet": "trojancut",
-  "packet_version": 6,
-  "phase": "plan",
+  "packet_version": 7,
+  "phase": "building",
   "branch": "claude/trojancut",
-  "milestone": null,
-  "updated": "2026-11-05T17:10:00Z"
+  "milestone": "M1",
+  "updated": "2026-11-05T17:49:22Z",
+  "g1": "auto-approved (packet: G1 auto-approve yes)"
 }
