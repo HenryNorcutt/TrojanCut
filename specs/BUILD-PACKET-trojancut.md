@@ -2,11 +2,14 @@
 status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 3    created: 2026-11-05
+packet-version: 4    created: 2026-11-05
 v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
   rewritten). Q&A in chat is only the fallback.
 v3 change: a second skill, /templatetrojancut, hands out the template with step-by-step
-  instructions (AB14); `package` builds both skill ZIPs (AB10). Everything else unchanged.
+  instructions (AB14); `package` builds both skill ZIPs (AB10).
+v4 change: setup scripts install both skills for Claude Code (AB15); the GitHub Release is no
+  longer RESERVED: the coordinator publishes it after verification (do not publish it yourself);
+  G2 tester is Henry's brother. Everything else unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -155,6 +158,14 @@ AB14: WHEN /templatetrojancut is invoked THE SKILL SHALL copy its bundled Trojan
   6. Wait while it analyses and renders (a few minutes for a 30 s edit), then download the MP4.
      To change it, reply with what to change; to start over, edit notes.txt and re-send.
   The skill SHALL need no network access and no installs (it only copies a file).
+AB15: WHEN setup.ps1 (Windows) or setup.sh (macOS/Linux) runs from a clone of the repo THE SYSTEM
+  SHALL install ffmpeg, Python and Node if missing (winget on Windows), run `tc.py setup`, and
+  copy skills/trojancut and skills/templatetrojancut into the user's Claude Code skills folder
+  (%USERPROFILE%\.claude\skills\ or ~/.claude/skills/), replacing older copies, so a second run
+  changes nothing. The README's Claude Code section SHALL be: paste the repo URL into Claude Code
+  and say "set this up" (CLAUDE.md gains a short project note below the guidelines telling
+  Claude Code to run the setup script for the user's OS when asked to set the repo up), then
+  restart Claude Code and use /templatetrojancut and /trojancut.
 E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pytest tests/e2e -q`.
   The build agent must not write or edit this check.
 
@@ -166,6 +177,7 @@ E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pyt
 | D3 | `python3 -m pytest tests/acceptance/trojancut/test_plan.py -q` | exit 0 | AB5, AB6 | yes |
 | D4 | `python3 -m pytest tests/acceptance/trojancut/test_render.py -q` | exit 0 | AB7, AB8, AB9 | yes |
 | D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, paths) | yes |
+| D8 | `python3 -m pytest tests/acceptance/trojancut/test_install.py -q` | exit 0 | AB15 (setup.sh with HOME set to a temp dir installs both skills, second run is a no-op; setup.ps1 exists and references the same skill folders; CLAUDE.md keeps the verbatim guidelines intact above the project note) | yes |
 | D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13, AB14 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders; templatetrojancut SKILL.md has all six steps and its bundled zip equals `template` output) | yes |
 | D6 | `python3 -m pytest tests/e2e -q` | exit 0 | E2E | yes (verified by coordinator) |
 Use varied inputs in acceptance tests (different clip counts, aspect 16:9 and 1:1, a silent
@@ -179,7 +191,7 @@ M1 Skeleton + engine spike - AB1, AB2 - done when D1. Also render a 5 s HyperFra
 M2 Analysis - AB3, AB4 - done when D2. Frame sampling and near-duplicate removal adapted from
    bradautomates/claude-video (MIT; keep its notice in THIRD_PARTY_NOTICES.md).
 M3 Plan + render + check - AB5..AB9 - done when D3, D4, D6.
-M4 Skills + template + packaging + docs - AB10..AB14 - done when D5, D6, D7; README covers (a) chat install:
+M4 Skills + template + packaging + install + docs - AB10..AB15 - done when D5, D6, D7, D8; README covers (a) chat install:
    download both skill ZIPs, Customize > Skills > upload each, turn on code execution,
    /templatetrojancut to get the template, fill it, zip it, /trojancut with the zip; (b) Claude Code
    on Windows: install Claude Code, run setup.ps1 (winget: ffmpeg, Python 3.12, Node 22), open the
@@ -199,15 +211,16 @@ Ask first (write BLOCKED.md and stop): any other dependency, deleting files outs
 RESERVED (Henry decides; write BLOCKED.md with options + recommendation):
 - [RESERVED] Dropping HyperFrames or motion graphics.
 - [RESERVED] Adding transcription, captions, or anything that needs an API key.
-- [RESERVED] Publishing a GitHub release or committing the built ZIP.
+- [RESERVED] Committing built ZIPs to the repo. (The GitHub Release is published by the
+  coordinator after verification; the build never publishes it.)
 
 ## Open questions
 (none)
 
 ## Human gates
 G1 plan + acceptance-test approval. G1 auto-approve: yes.
-G2 Henry, after the PR: install dist/trojancut.zip in his own claude.ai chat and run one real edit
-   with his footage and a reference; on his Windows PC run setup.ps1 and one edit in Claude Code.
+G2 Henry's brother, after the coordinator publishes the Release: installs both skill ZIPs in his
+   claude.ai chat and runs one real edit; optionally the Claude Code route on his Windows PC.
    Look/feel is judged here, not by tests.
 G3 PR, opened ready for review (not draft). Before the PR: merge latest main, run scripts/done.sh
    and every suite, then run the packet-evaluator subagent (.claude/agents/packet-evaluator.md)
