@@ -16,3 +16,4 @@
 - 14:40 Merged main (no new commits). bash scripts/done.sh: ALL PASS, exit 0, 999 s. Next: packet-evaluator.
 - 14:55 packet-evaluator run 1: OVERALL FAIL only for post-plan edits to protected tests (frontmatter assertions). Reverted both files to 1fdc0c0; D5+D7 26 passed; protected diff vs 1fdc0c0 empty. Rerunning evaluator.
 - 14:35 packet-evaluator run 2: OVERALL PASS. Phase -> done. Opening PR.
+- 14:40 PR opened ready for review: https://github.com/HenryNorcutt/TrojanCut/pull/1. Stopping (no PR watching per G3).
