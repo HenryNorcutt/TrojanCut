@@ -2,7 +2,7 @@
 status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 6    created: 2026-11-05
+packet-version: 7    created: 2026-11-05
 v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
   rewritten). Q&A in chat is only the fallback.
 v3 change: a second skill, /templatetrojancut, hands out the template with step-by-step
@@ -13,8 +13,9 @@ v4 change: setup scripts install both skills for Claude Code (AB15); the GitHub 
 v5 change: music is optional and may be several songs with chosen or auto-picked parts and
   cut/fade switches (AB16, D9); notes.txt music lines replaced (AB12); AB13 maps them.
 v6 change: sound effects are back IN: a built-in pack we synthesize ourselves plus the user's own
-  sfx/ folder (AB17, D10); template gains sfx/ and two notes lines (AB12, AB13). Everything else
-  unchanged.
+  sfx/ folder (AB17, D10); template gains sfx/ and two notes lines (AB12, AB13).
+v7 change: "Anything else:" is the last line of notes.txt and takes free text on any number of
+  lines below it (AB12, AB13, AB11). Everything else unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -121,7 +122,8 @@ AB10: WHEN `package --out D` runs THE SYSTEM SHALL write D/trojancut.zip (under 
   node_modules or .pyc.
 AB11: WHEN /trojancut is invoked in chat with no project zip attached THE SKILL SHALL (per
   SKILL.md) give the same template and steps as /templatetrojancut (AB14).
-  WHEN invoked with project zip(s) attached THE SKILL SHALL run `open`, then the pipeline, look
+  WHEN invoked with project zip(s) attached THE SKILL SHALL run `open`, read brief.yaml `notes` and treat it as instructions that override defaults (not the
+  answered questions), then the pipeline, look
   only at claude_images, optionally edit plan.json and re-run validate, render, check, and deliver
   the MP4 to /mnt/user-data/outputs when that dir exists. It SHALL ask the user at most one
   message of questions, and only when notes.txt is missing or contradicts the files (e.g. names a
@@ -148,7 +150,7 @@ AB12: WHEN `template --out D` runs THE SYSTEM SHALL write TrojanCut-Project.zip 
     Title text at the start (blank = none):
     Must include:
     Avoid:
-    Anything else:
+    Anything else (any notes or context, as many lines as you like below this one):
 AB13: WHEN `open Z P` runs THE SYSTEM SHALL extract the zip(s) whether the folders sit at the
   zip root or inside one wrapper folder (Windows "Send to > Compressed folder"), ignore __MACOSX
   and dotfiles, merge several zips into one project, map notes.txt answers to brief.yaml
@@ -161,7 +163,9 @@ AB13: WHEN `open Z P` runs THE SYSTEM SHALL extract the zip(s) whether the folde
   "mine" with no sfx/ folder is not an error), fill a missing logo answer when exactly one candidate file
   exists, and exit
   non-zero with a plain-English line naming the problem when notes.txt contradicts the files or
-  a value is unreadable (e.g. shortest > longest).
+  a value is unreadable (e.g. shortest > longest). Everything after the "Anything else" line, to the end of the
+  file, is kept verbatim (line breaks included) as brief.yaml `notes`; text there never breaks
+  parsing even if it contains colons or looks like other questions.
 AB16: WHEN the brief lists several songs THE SYSTEM SHALL play them in the given order, each
   using its chosen part or, for "auto", the highest-energy window (onset density and loudness)
   of the length the plan needs, joined by a hard cut on a beat ("cut") or a fade of about one
