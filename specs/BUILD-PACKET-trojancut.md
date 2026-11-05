@@ -2,7 +2,7 @@
 status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 5    created: 2026-11-05
+packet-version: 6    created: 2026-11-05
 v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
   rewritten). Q&A in chat is only the fallback.
 v3 change: a second skill, /templatetrojancut, hands out the template with step-by-step
@@ -12,7 +12,9 @@ v4 change: setup scripts install both skills for Claude Code (AB15); the GitHub 
   G2 tester is Henry's brother.
 v5 change: music is optional and may be several songs with chosen or auto-picked parts and
   cut/fade switches (AB16, D9); notes.txt music lines replaced (AB12); AB13 maps them.
-  Everything else unchanged.
+v6 change: sound effects are back IN: a built-in pack we synthesize ourselves plus the user's own
+  sfx/ folder (AB17, D10); template gains sfx/ and two notes lines (AB12, AB13). Everything else
+  unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -61,7 +63,7 @@ IN: the skill folder skills/trojancut/ (SKILL.md + scripts/), the tc.py CLI belo
   THIRD_PARTY_NOTICES.md.
 OUT (non-goals): web UI, accounts, hosted rendering, speech transcription and captions, AI-generated
   footage or voice, tempo matching or time-stretching songs, lyric-aware cuts, drop-to-moment
-  syncing, sound effects, stem/vocal removal, multiple output variants, Premiere/Resolve timeline export, 4K, YouTube/URL
+  syncing, third-party sound-effect files in the repo, stem/vocal removal, multiple output variants, Premiere/Resolve timeline export, 4K, YouTube/URL
   downloads, GitHub releases.
 
 ## CLI contract (fixed by tests/e2e; greenfield, so stated here)
@@ -125,8 +127,8 @@ AB11: WHEN /trojancut is invoked in chat with no project zip attached THE SKILL 
   message of questions, and only when notes.txt is missing or contradicts the files (e.g. names a
   logo that isn't there). In Claude Code the same flow SHALL work with a local folder or zip path.
 AB12: WHEN `template --out D` runs THE SYSTEM SHALL write TrojanCut-Project.zip containing
-  folders footage/, assets/, refs/, music/ (each with a one-line README.txt saying what goes in
-  it), a top-level HOW-TO.txt (5 steps, plus: keep each zip under 500 MB, split big shoots into
+  folders footage/, assets/, refs/, music/, sfx/ (each with a one-line README.txt saying what goes
+  in it; sfx/'s also says to put the type in the file name, e.g. whoosh_big.wav, impact_1.mp3), a top-level HOW-TO.txt (5 steps, plus: keep each zip under 500 MB, split big shoots into
   several zips and attach them together), and notes.txt with exactly these questions, one per
   line as "Question: answer", answers blank or defaulted as shown:
     Shortest length in seconds: 15
@@ -137,6 +139,8 @@ AB12: WHEN `template --out D` runs THE SYSTEM SHALL write TrojanCut-Project.zip 
     Song parts (e.g. song1.mp3 0:45-1:15; song2.mp3 auto  blank = Claude picks):
     Switch between songs (cut / quick fade / Claude decides): Claude decides
     Keep sound from the clips (yes / no): no
+    Sound effects (none / some / lots): some
+    Which sound effects (built-in / mine / both): both
     Copy from the references (cuts / color / text / everything): everything
     Effects amount (low / medium / high): medium
     Logo file (name in assets folder):
@@ -152,7 +156,9 @@ AB13: WHEN `open Z P` runs THE SYSTEM SHALL extract the zip(s) whether the folde
   full), map the music lines to brief.yaml (music stays a single path when there is exactly one
   song with no chosen part; otherwise a list of {file, part: "auto" | [start_s, end_s]} plus
   song_switch and keep_clip_audio; "my songs" with an empty music folder is an error; times
-  accept m:ss, mm:ss and seconds), fill a missing logo answer when exactly one candidate file
+  accept m:ss, mm:ss and seconds), map the two sound-effect lines to sfx_amount and
+  sfx_source ("mine" or "both" with an empty sfx/ folder falls back to built-in and says so;
+  "mine" with no sfx/ folder is not an error), fill a missing logo answer when exactly one candidate file
   exists, and exit
   non-zero with a plain-English line naming the problem when notes.txt contradicts the files or
   a value is unreadable (e.g. shortest > longest).
@@ -165,6 +171,23 @@ AB16: WHEN the brief lists several songs THE SYSTEM SHALL play them in the given
   is used; with keep_clip_audio yes, clip audio sits about 12 dB under the music. Chosen parts
   that together fall outside min/max length are trimmed or looped to fit, and report.json says
   which. No time-stretching or tempo matching (OUT).
+AB17: Sound effects.
+  (a) Built-in pack: a script in the repo synthesizes it deterministically from numpy + ffmpeg
+  (no downloads, no third-party files): at least whoosh, swoosh, riser, impact, sub drop, hit,
+  glitch, pop and camera shutter, 2-4 variants each, short and normalised, total under 3 MB,
+  shipped inside skills/trojancut/ with a manifest (name, type, duration, peak, loudness, tags).
+  WHEN the script runs twice THE SYSTEM SHALL produce identical files.
+  (b) WHEN ingest finds files in sfx/ THE SYSTEM SHALL index them with a type taken from the file
+  name (whoosh, swoosh, riser, impact, hit, boom, drop, glitch, pop, click...) or, when the name
+  has none, from the sound's shape (sharp attack = hit, rising level = riser, noise sweep =
+  whoosh, else "other"), plus duration and loudness, in index.json (text only, no images).
+  (c) WHEN sfx_amount is not none THE SYSTEM SHALL have autoplan place effects from the chosen
+  source: a whoosh/swoosh on transitions, an impact/hit on the title reveal and on strong
+  beats, a riser ending at each song switch; "some" about 1 per 4 cuts, "lots" about 1 per 2,
+  never two overlapping; effects mixed about 6 dB under the music and never clipping. "both"
+  prefers the user's file of a type over the built-in one. Claude may change placements in
+  plan.json and validate checks every effect file exists. WHEN sfx_amount is none THE SYSTEM
+  SHALL place no effects.
 AB14: WHEN /templatetrojancut is invoked THE SKILL SHALL copy its bundled TrojanCut-Project.zip
   to /mnt/user-data/outputs (or the current folder in Claude Code), hand it to the user, and
   reply with these numbered steps in plain words (wording may differ, every step present):
@@ -199,6 +222,7 @@ E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pyt
 | D4 | `python3 -m pytest tests/acceptance/trojancut/test_render.py -q` | exit 0 | AB7, AB8, AB9 | yes |
 | D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, paths) | yes |
 | D9 | `python3 -m pytest tests/acceptance/trojancut/test_music.py -q` | exit 0 | AB16 (synthetic songs at different BPMs and pitches: order kept, chosen part used (check pitch/onsets at the expected output times), auto part lands in the loud window, cut vs fade measurable at the join, cuts follow each song's grid, none / reference audio / keep_clip_audio cases) | yes |
+| D10 | `python3 -m pytest tests/acceptance/trojancut/test_sfx.py -q` | exit 0 | AB17 (pack generated twice is byte-identical and under 3 MB, manifest matches files; user files classified by name and by shape with synthetic sharp/rising/sweep sounds; placement counts per amount; effects audible at planned times in the render (onset there); none = no effects; no clipping) | yes |
 | D8 | `python3 -m pytest tests/acceptance/trojancut/test_install.py -q` | exit 0 | AB15 (setup.sh with HOME set to a temp dir installs both skills, second run is a no-op; setup.ps1 exists and references the same skill folders; CLAUDE.md keeps the verbatim guidelines intact above the project note) | yes |
 | D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13, AB14 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders; templatetrojancut SKILL.md has all six steps and its bundled zip equals `template` output) | yes |
 | D6 | `python3 -m pytest tests/e2e -q` | exit 0 | E2E | yes (verified by coordinator) |
@@ -212,7 +236,7 @@ M1 Skeleton + engine spike - AB1, AB2 - done when D1. Also render a 5 s HyperFra
    (dropping it is RESERVED).
 M2 Analysis - AB3, AB4 - done when D2. Frame sampling and near-duplicate removal adapted from
    bradautomates/claude-video (MIT; keep its notice in THIRD_PARTY_NOTICES.md).
-M3 Plan + render + check + music - AB5..AB9, AB16 - done when D3, D4, D6, D9.
+M3 Plan + render + check + music + sfx - AB5..AB9, AB16, AB17 - done when D3, D4, D6, D9, D10.
 M4 Skills + template + packaging + install + docs - AB10..AB15 - done when D5, D6, D7, D8; README covers (a) chat install:
    download both skill ZIPs, Customize > Skills > upload each, turn on code execution,
    /templatetrojancut to get the template, fill it, zip it, /trojancut with the zip; (b) Claude Code
