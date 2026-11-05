@@ -2,9 +2,11 @@
 status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 2    created: 2026-11-05
+packet-version: 3    created: 2026-11-05
 v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
-  rewritten). Q&A in chat is only the fallback. Everything else unchanged.
+  rewritten). Q&A in chat is only the fallback.
+v3 change: a second skill, /templatetrojancut, hands out the template with step-by-step
+  instructions (AB14); `package` builds both skill ZIPs (AB10). Everything else unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -103,12 +105,13 @@ AB8: WHEN engine is ffmpeg (forced or fallback) THE SYSTEM SHALL produce the sam
 AB9: WHEN `check P` runs THE SYSTEM SHALL write report.json with ok true/false plus reasons
   (duration range, aspect, audio present, no more than 1 s of black frames) and exit non-zero
   when ok is false.
-AB10: WHEN `package --out D` runs THE SYSTEM SHALL write a ZIP under 15 MB with SKILL.md (name
-  trojancut, description <= 1024 chars, no angle brackets) and scripts/, without node_modules
-  or .pyc.
+AB10: WHEN `package --out D` runs THE SYSTEM SHALL write D/trojancut.zip (under 15 MB, SKILL.md
+  with name trojancut, description <= 1024 chars, no angle brackets, plus scripts/) and
+  D/templatetrojancut.zip (top folder templatetrojancut/, SKILL.md with name templatetrojancut,
+  same description rules, plus the bundled TrojanCut-Project.zip), neither containing
+  node_modules or .pyc.
 AB11: WHEN /trojancut is invoked in chat with no project zip attached THE SKILL SHALL (per
-  SKILL.md) run `template` and hand TrojanCut-Project.zip to the user (in /mnt/user-data/outputs
-  when that dir exists) with three short steps (fill folders, fill notes.txt, zip and send back).
+  SKILL.md) give the same template and steps as /templatetrojancut (AB14).
   WHEN invoked with project zip(s) attached THE SKILL SHALL run `open`, then the pipeline, look
   only at claude_images, optionally edit plan.json and re-run validate, render, check, and deliver
   the MP4 to /mnt/user-data/outputs when that dir exists. It SHALL ask the user at most one
@@ -138,6 +141,20 @@ AB13: WHEN `open Z P` runs THE SYSTEM SHALL extract the zip(s) whether the folde
   full), fill a missing logo/music answer when exactly one candidate file exists, and exit
   non-zero with a plain-English line naming the problem when notes.txt contradicts the files or
   a value is unreadable (e.g. shortest > longest).
+AB14: WHEN /templatetrojancut is invoked THE SKILL SHALL copy its bundled TrojanCut-Project.zip
+  to /mnt/user-data/outputs (or the current folder in Claude Code), hand it to the user, and
+  reply with these numbered steps in plain words (wording may differ, every step present):
+  1. Download TrojanCut-Project.zip, right-click it > Extract All.
+  2. Put clips in footage, logos/images in assets, the videos to copy the style of in refs,
+     the song in music (optional).
+  3. Open notes.txt, answer each line after the colon, save. Blank = let Claude decide.
+  4. Zip it: right-click the TrojanCut-Project folder > Compress to ZIP file (Windows 11) or
+     Send to > Compressed (zipped) folder (Windows 10). Keep each zip under 500 MB; for a big
+     shoot, make several zips (e.g. move half the footage into a second copy of the folder).
+  5. Open a new chat, type /trojancut, attach the zip(s), send.
+  6. Wait while it analyses and renders (a few minutes for a 30 s edit), then download the MP4.
+     To change it, reply with what to change; to start over, edit notes.txt and re-send.
+  The skill SHALL need no network access and no installs (it only copies a file).
 E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pytest tests/e2e -q`.
   The build agent must not write or edit this check.
 
@@ -149,7 +166,7 @@ E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pyt
 | D3 | `python3 -m pytest tests/acceptance/trojancut/test_plan.py -q` | exit 0 | AB5, AB6 | yes |
 | D4 | `python3 -m pytest tests/acceptance/trojancut/test_render.py -q` | exit 0 | AB7, AB8, AB9 | yes |
 | D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, paths) | yes |
-| D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders) | yes |
+| D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13, AB14 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders; templatetrojancut SKILL.md has all six steps and its bundled zip equals `template` output) | yes |
 | D6 | `python3 -m pytest tests/e2e -q` | exit 0 | E2E | yes (verified by coordinator) |
 Use varied inputs in acceptance tests (different clip counts, aspect 16:9 and 1:1, a silent
 reference, a brief with no music, a project with 25 clips for AB4), not just the E2E fixtures.
@@ -162,9 +179,9 @@ M1 Skeleton + engine spike - AB1, AB2 - done when D1. Also render a 5 s HyperFra
 M2 Analysis - AB3, AB4 - done when D2. Frame sampling and near-duplicate removal adapted from
    bradautomates/claude-video (MIT; keep its notice in THIRD_PARTY_NOTICES.md).
 M3 Plan + render + check - AB5..AB9 - done when D3, D4, D6.
-M4 Skill + template + packaging + docs - AB10..AB13 - done when D5, D6, D7; README covers (a) chat install:
-   download ZIP, Customize > Skills > upload, turn on code execution, /trojancut to get the
-   template, fill it, zip it, /trojancut with the zip; (b) Claude Code
+M4 Skills + template + packaging + docs - AB10..AB14 - done when D5, D6, D7; README covers (a) chat install:
+   download both skill ZIPs, Customize > Skills > upload each, turn on code execution,
+   /templatetrojancut to get the template, fill it, zip it, /trojancut with the zip; (b) Claude Code
    on Windows: install Claude Code, run setup.ps1 (winget: ffmpeg, Python 3.12, Node 22), open the
    repo folder.
 Each milestone: commit and push on green; 3 failed attempts -> revert to last green, report.
