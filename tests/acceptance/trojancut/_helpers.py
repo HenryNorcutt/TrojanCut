@@ -144,8 +144,12 @@ def make_clip(path, colour, w=640, h=360, fps=25, dur=6.0, moving=True, tone=Non
         args += ["-f", "lavfi", "-i", f"anoisesrc=a=0.05:d={dur}"]
     vf = []
     if moving:
+        # overlay evaluates x per frame (drawbox in ffmpeg 6.1 evaluates it once, so it would not move)
         bw = max(8, w // 8)
-        vf = ["-vf", f"drawbox=x='mod(t*{w // 3}\\,{w - bw})':y={h // 3}:w={bw}:h={bw}:color=white:t=fill"]
+        nin = 2 if (tone or noise or audio_wav) else 1
+        args += ["-f", "lavfi", "-i", f"color=c=white:s={bw}x{bw}:r={fps}:d={dur}"]
+        vf = ["-filter_complex", f"[0:v][{nin}:v]overlay=x='mod(t*{w // 3},{w - bw})':y={h // 3}:shortest=1[v]",
+              "-map", "[v]"] + (["-map", "1:a"] if nin == 2 else [])
     enc = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-g", str(fps)]
     if tone or noise or audio_wav:
         ff(*args, *vf, *enc, "-c:a", "aac", "-b:a", "192k", "-shortest", path)
