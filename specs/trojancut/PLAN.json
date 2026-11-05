@@ -1,0 +1,160 @@
+{
+ "packet": "trojancut",
+ "packet_version": 7,
+ "architecture": {
+  "cli": "skills/trojancut/scripts/tc.py (argparse dispatcher) + modules: common.py (paths, ffprobe, brief, errors), ingest.py, analyze.py (cuts, beats, colour, LUT, frames+dedup adapted from claude-video), music.py (song analysis, parts, switches), sfx.py (classification, placement), make_sfx.py (deterministic built-in pack), planner.py (autoplan), validate.py, render.py (ffmpeg base + audio mix + engines), hf.py (HyperFrames overlay composition), check.py, project.py (template, open, notes.txt mapping), package.py (both skill ZIPs, install-skills)",
+  "engines": "Both engines build the graded base video (per-shot segments -> concat/xfade) and the audio mix with ffmpeg. HyperFrames renders a transparent PNG-sequence overlay (animated title, animated logo, transition accents) composited over the base; ffmpeg engine overlays static Pillow-rendered title and logo PNGs. auto falls back to ffmpeg when HyperFrames is not usable or its render fails; report.json records engine and fallback reason.",
+  "hyperframes_install": "setup runs npm ci from skills/trojancut/engine/package.json + package-lock.json (hyperframes 0.9.16 pinned) into TROJANCUT_HOME (default ~/.cache/trojancut or %LOCALAPPDATA%/TrojanCut), finds a Chrome (HYPERFRAMES_BROWSER_PATH, system Chrome/Chromium, or HyperFrames' own browser), smoke-renders once and writes a stamp so the second run is a check only. DO_NOT_TRACK=1 is set for every HyperFrames call. GSAP is the copy HyperFrames vendors in its dist.",
+  "claude_budget": "index.json claude_images <= 28 (one 4x4 contact sheet per clip; grouped overview sheets when clips exceed 28), style.json claude_images <= 12 (deduplicated scene frames, 512 px); long arrays move to sidecar files if the two JSONs exceed 60 KB.",
+  "beats": "numpy spectral-flux onset envelope, autocorrelation tempo in 60-180 BPM preferring the faster octave when its sub-beat is strong, phase + period refined by least squares on detected onsets, downbeat = strongest of 4 beat offsets.",
+  "grade": "per-channel mean/std transfer from aggregate footage colour to aggregate reference colour baked into a 17^3 .cube at match strength; applied with lut3d before overlays so logo/title keep their colours.",
+  "sfx_pack": "make_sfx.py synthesizes whoosh, swoosh, riser, impact, subdrop, hit, glitch, pop, shutter (3 variants each) with numpy + a fixed xorshift PRNG, 44.1 kHz mono 16-bit WAV peak-normalised to -1 dBFS, plus manifest.json; committed under skills/trojancut/sfx/.",
+  "template": "deterministic zip (fixed timestamps/order) built by tc.py template; not committed (RESERVED: built zips); package and install-skills generate it into the templatetrojancut skill."
+ },
+ "contracts": {
+  "index.json": [
+   "clips[{path,duration,width,height,fps,has_audio,motion,sheet,sheet_tiles,color{mean_rgb,std_rgb}}]",
+   "images[{path,width,height}]",
+   "refs[{path,duration,width,height,fps,has_audio}]",
+   "music[{path,duration}]",
+   "sfx[{path,type,type_from,duration,loudness_db}]",
+   "claude_images"
+  ],
+  "style.json": [
+   "refs[{path,duration,cuts,median_shot_seconds,bpm,beats,beat_source,color{mean_rgb,std_rgb,luma,saturation},lut,frames}]",
+   "median_shot_seconds",
+   "bpm",
+   "lut",
+   "text_color",
+   "claude_images"
+  ],
+  "plan.json": [
+   "width,height,fps,aspect,duration",
+   "shots[{clip,in,out,start,end,transition{type,duration}}]",
+   "music{mode,segments[{file,src_in,src_out,start,end,bpm,part}],switches[{at,type,seconds,reason}],fit,clip_audio_db}",
+   "beats",
+   "grade{lut,strength}|null",
+   "logo{file,position,size}|null",
+   "title{text,start,end,color,animation}|null",
+   "sfx[{file,type,start,at,duration,gain_db,reason}]",
+   "effects_intensity",
+   "notes"
+  ],
+  "report.json": [
+   "ok",
+   "reasons",
+   "checks",
+   "engine",
+   "fallback_reason",
+   "music_fit",
+   "sfx_count",
+   "layers"
+  ],
+  "extra_commands": [
+   "install-skills --dest D (used by setup.sh/setup.ps1)"
+  ]
+ },
+ "milestones": [
+  {
+   "id": "M1",
+   "covers": [
+    "AB1",
+    "AB2"
+   ],
+   "done_when": [
+    "D1"
+   ],
+   "files": [
+    "tc.py",
+    "common.py",
+    "ingest.py",
+    "setup in tc.py",
+    "engine/package.json",
+    "engine/package-lock.json",
+    "requirements.txt",
+    "specs/trojancut/SPIKE.md"
+   ]
+  },
+  {
+   "id": "M2",
+   "covers": [
+    "AB3",
+    "AB4"
+   ],
+   "done_when": [
+    "D2"
+   ],
+   "files": [
+    "analyze.py",
+    "THIRD_PARTY_NOTICES.md"
+   ]
+  },
+  {
+   "id": "M3",
+   "covers": [
+    "AB5",
+    "AB6",
+    "AB7",
+    "AB8",
+    "AB9",
+    "AB16",
+    "AB17"
+   ],
+   "done_when": [
+    "D3",
+    "D4",
+    "D6",
+    "D9",
+    "D10"
+   ],
+   "files": [
+    "music.py",
+    "planner.py",
+    "validate.py",
+    "render.py",
+    "hf.py",
+    "check.py",
+    "sfx.py",
+    "make_sfx.py",
+    "sfx/*.wav",
+    "sfx/manifest.json"
+   ]
+  },
+  {
+   "id": "M4",
+   "covers": [
+    "AB10",
+    "AB11",
+    "AB12",
+    "AB13",
+    "AB14",
+    "AB15"
+   ],
+   "done_when": [
+    "D5",
+    "D6",
+    "D7",
+    "D8"
+   ],
+   "files": [
+    "project.py",
+    "package.py",
+    "skills/trojancut/SKILL.md",
+    "skills/templatetrojancut/SKILL.md",
+    "setup.sh",
+    "setup.ps1",
+    "README.md",
+    "CLAUDE.md project note"
+   ]
+  }
+ ],
+ "test_strategy": "Acceptance tests generate their own synthetic media with ffmpeg/numpy (varied: 16:9, 1:1, 9:16 clips, 24/25/30 fps, silent refs, no-music briefs, 25-clip project, songs at 100/150 BPM with distinct pitches) and measure outputs independently (ffprobe, frame pixels, FFT band energy). Shared helpers in tests/acceptance/trojancut/_helpers.py (not conftest.py, which the hooks protect).",
+ "assumptions": [
+  "notes.txt missing: open writes defaults and prints a note; SKILL.md then asks one message of questions.",
+  "Songs not named in 'Song order' play after the named ones, alphabetically.",
+  "Brief keys absent -> defaults: music none when absent, sfx_amount some, sfx_source both, song_switch auto, keep_clip_audio false.",
+  "Stills in footage/ are indexed as images but not cut into the edit (v1).",
+  "chrome-headless-shell cannot be downloaded on this VM; system Chrome is used via HYPERFRAMES_BROWSER_PATH detection.",
+  "notes.txt: questions matched by leading words before any parenthesis (case-insensitive); everything after the 'Anything else' line is kept verbatim as brief.yaml notes."
+ ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "trojancut-engine",
+  "private": true,
+  "description": "Pinned HyperFrames engine for TrojanCut (installed by tc.py setup into TROJANCUT_HOME)",
+  "dependencies": {
+    "hyperframes": "0.9.16"
+  }
+}
