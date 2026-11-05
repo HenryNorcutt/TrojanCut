@@ -3,7 +3,10 @@
   "packet_version": 7,
   "phase": "building",
   "branch": "claude/trojancut",
-  "milestone": "M1",
+  "milestone": "M2",
   "updated": "2026-11-05T17:49:22Z",
-  "g1": "auto-approved (packet: G1 auto-approve yes)"
+  "g1": "auto-approved (packet: G1 auto-approve yes)",
+  "done": [
+    "M1"
+  ]
 }
