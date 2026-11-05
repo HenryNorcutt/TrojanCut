@@ -1,6 +1,6 @@
 {
   "packet": "trojancut",
-  "packet_version": 7,
+  "packet_version": 8,
   "phase": "building",
   "branch": "claude/trojancut",
   "milestone": "M2",

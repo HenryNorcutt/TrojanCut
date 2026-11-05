@@ -8,3 +8,4 @@ python3 -m pytest tests/acceptance/trojancut/test_install.py -q
 python3 -m pytest tests/acceptance/trojancut/test_music.py -q
 python3 -m pytest tests/acceptance/trojancut/test_sfx.py -q
 python3 -m pytest tests/e2e -q
+python3 -m pytest tests/acceptance/trojancut/test_motion_fx.py -q
