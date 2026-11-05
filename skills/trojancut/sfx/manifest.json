@@ -1,0 +1,303 @@
+{
+ "version": 1,
+ "sample_rate": 44100,
+ "sounds": [
+  {
+   "name": "whoosh_1.wav",
+   "type": "whoosh",
+   "duration": 0.7,
+   "peak": -1.0,
+   "loudness": -16.97,
+   "tags": [
+    "air",
+    "transition"
+   ]
+  },
+  {
+   "name": "whoosh_2.wav",
+   "type": "whoosh",
+   "duration": 0.55,
+   "peak": -1.0,
+   "loudness": -16.54,
+   "tags": [
+    "air",
+    "transition"
+   ]
+  },
+  {
+   "name": "whoosh_3.wav",
+   "type": "whoosh",
+   "duration": 0.9,
+   "peak": -1.0,
+   "loudness": -17.48,
+   "tags": [
+    "air",
+    "transition"
+   ]
+  },
+  {
+   "name": "swoosh_1.wav",
+   "type": "swoosh",
+   "duration": 0.35,
+   "peak": -1.0,
+   "loudness": -15.92,
+   "tags": [
+    "fast",
+    "transition"
+   ]
+  },
+  {
+   "name": "swoosh_2.wav",
+   "type": "swoosh",
+   "duration": 0.3,
+   "peak": -1.0,
+   "loudness": -15.3,
+   "tags": [
+    "fast",
+    "transition"
+   ]
+  },
+  {
+   "name": "swoosh_3.wav",
+   "type": "swoosh",
+   "duration": 0.42,
+   "peak": -1.0,
+   "loudness": -15.48,
+   "tags": [
+    "fast",
+    "transition"
+   ]
+  },
+  {
+   "name": "riser_1.wav",
+   "type": "riser",
+   "duration": 1.6,
+   "peak": -1.0,
+   "loudness": -16.86,
+   "tags": [
+    "build",
+    "tension"
+   ]
+  },
+  {
+   "name": "riser_2.wav",
+   "type": "riser",
+   "duration": 2.0,
+   "peak": -1.0,
+   "loudness": -17.0,
+   "tags": [
+    "build",
+    "tension"
+   ]
+  },
+  {
+   "name": "riser_3.wav",
+   "type": "riser",
+   "duration": 1.2,
+   "peak": -1.0,
+   "loudness": -16.64,
+   "tags": [
+    "build",
+    "tension"
+   ]
+  },
+  {
+   "name": "impact_1.wav",
+   "type": "impact",
+   "duration": 0.9,
+   "peak": -1.0,
+   "loudness": -16.18,
+   "tags": [
+    "boom",
+    "heavy"
+   ]
+  },
+  {
+   "name": "impact_2.wav",
+   "type": "impact",
+   "duration": 1.2,
+   "peak": -1.0,
+   "loudness": -17.02,
+   "tags": [
+    "boom",
+    "heavy"
+   ]
+  },
+  {
+   "name": "impact_3.wav",
+   "type": "impact",
+   "duration": 0.7,
+   "peak": -1.0,
+   "loudness": -16.5,
+   "tags": [
+    "boom",
+    "heavy"
+   ]
+  },
+  {
+   "name": "subdrop_1.wav",
+   "type": "subdrop",
+   "duration": 1.4,
+   "peak": -1.0,
+   "loudness": -11.45,
+   "tags": [
+    "bass",
+    "drop"
+   ]
+  },
+  {
+   "name": "subdrop_2.wav",
+   "type": "subdrop",
+   "duration": 1.8,
+   "peak": -1.0,
+   "loudness": -11.56,
+   "tags": [
+    "bass",
+    "drop"
+   ]
+  },
+  {
+   "name": "subdrop_3.wav",
+   "type": "subdrop",
+   "duration": 1.1,
+   "peak": -1.0,
+   "loudness": -11.54,
+   "tags": [
+    "bass",
+    "drop"
+   ]
+  },
+  {
+   "name": "hit_1.wav",
+   "type": "hit",
+   "duration": 0.3,
+   "peak": -1.0,
+   "loudness": -17.78,
+   "tags": [
+    "punch",
+    "accent"
+   ]
+  },
+  {
+   "name": "hit_2.wav",
+   "type": "hit",
+   "duration": 0.4,
+   "peak": -1.0,
+   "loudness": -18.44,
+   "tags": [
+    "punch",
+    "accent"
+   ]
+  },
+  {
+   "name": "hit_3.wav",
+   "type": "hit",
+   "duration": 0.25,
+   "peak": -1.0,
+   "loudness": -17.44,
+   "tags": [
+    "punch",
+    "accent"
+   ]
+  },
+  {
+   "name": "glitch_1.wav",
+   "type": "glitch",
+   "duration": 0.4,
+   "peak": -1.0,
+   "loudness": -5.64,
+   "tags": [
+    "digital",
+    "stutter"
+   ]
+  },
+  {
+   "name": "glitch_2.wav",
+   "type": "glitch",
+   "duration": 0.5,
+   "peak": -1.0,
+   "loudness": -6.35,
+   "tags": [
+    "digital",
+    "stutter"
+   ]
+  },
+  {
+   "name": "glitch_3.wav",
+   "type": "glitch",
+   "duration": 0.3,
+   "peak": -1.0,
+   "loudness": -6.27,
+   "tags": [
+    "digital",
+    "stutter"
+   ]
+  },
+  {
+   "name": "pop_1.wav",
+   "type": "pop",
+   "duration": 0.12,
+   "peak": -1.0,
+   "loudness": -13.13,
+   "tags": [
+    "light",
+    "ui"
+   ]
+  },
+  {
+   "name": "pop_2.wav",
+   "type": "pop",
+   "duration": 0.15,
+   "peak": -1.0,
+   "loudness": -14.05,
+   "tags": [
+    "light",
+    "ui"
+   ]
+  },
+  {
+   "name": "pop_3.wav",
+   "type": "pop",
+   "duration": 0.1,
+   "peak": -1.0,
+   "loudness": -12.29,
+   "tags": [
+    "light",
+    "ui"
+   ]
+  },
+  {
+   "name": "shutter_1.wav",
+   "type": "shutter",
+   "duration": 0.25,
+   "peak": -1.0,
+   "loudness": -23.15,
+   "tags": [
+    "camera",
+    "click"
+   ]
+  },
+  {
+   "name": "shutter_2.wav",
+   "type": "shutter",
+   "duration": 0.3,
+   "peak": -1.0,
+   "loudness": -24.64,
+   "tags": [
+    "camera",
+    "click"
+   ]
+  },
+  {
+   "name": "shutter_3.wav",
+   "type": "shutter",
+   "duration": 0.2,
+   "peak": -1.0,
+   "loudness": -22.81,
+   "tags": [
+    "camera",
+    "click"
+   ]
+  }
+ ]
+}

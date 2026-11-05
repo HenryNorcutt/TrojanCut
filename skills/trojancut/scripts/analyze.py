@@ -18,6 +18,7 @@ from pathlib import Path
 import numpy as np
 
 import audio
+import motion
 from common import fail, load_brief, log, project_dir, read_json, rel, write_json
 
 SCENE_THRESHOLD = 0.15         # ffmpeg scene score for a hard cut
@@ -86,8 +87,10 @@ def write_lut(path, src, dst, strength=1.0, title="trojancut"):
         for gg in g:
             for r in g:
                 v = np.array([r, gg, b])
-                t = (v - sm) * gain + dm
-                o = np.clip(v + strength * (t - v), 0, 1)
+                t = np.clip((v - sm) * gain + dm, 0, 1)
+                # protect highlights: near-white stays white (titles, sky, logos keep their brightness)
+                protect = np.clip((v.min() - 0.85) / 0.15, 0, 1)
+                o = np.clip(v + strength * (1 - protect) * (t - v), 0, 1)
                 lines.append(f"{o[0]:.5f} {o[1]:.5f} {o[2]:.5f}")
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text("\n".join(lines) + "\n")
@@ -184,8 +187,6 @@ def analyze_refs(proj):
         path = proj / r["path"]
         dur = r["duration"]
         cuts = detect_cuts(path)
-        lens, inner = shot_lengths(cuts, dur)
-        median = statistics.median(inner) if inner else dur
         if r.get("has_audio"):
             x = audio.decode(path)
             grid = audio.beat_track(x)
@@ -198,8 +199,15 @@ def analyze_refs(proj):
                 if song_grid is None:
                     song_grid = audio.beat_track(audio.decode(song))
                 grid, src = song_grid, "music"
-            if not grid or grid["bpm"] <= 0:
-                grid, src = audio.grid_from_period(60 / audio.bpm_from_shot(median), dur), "cuts"
+        # motion effects; scene "cuts" that are really flashes or zoom punches are not cuts
+        mfx, false_cuts = motion.analyze(path, cuts, grid["beats"] if grid else [])
+        cuts = [c for c in cuts if c not in false_cuts]
+        lens, inner = shot_lengths(cuts, dur)
+        median = statistics.median(inner) if inner else dur
+        if not grid or grid["bpm"] <= 0:
+            grid, src = audio.grid_from_period(60 / audio.bpm_from_shot(median), dur), "cuts"
+            for k in mfx.values():
+                k["on_beat_share"] = 0.0
         px = sample_rgb(path, dur)
         all_px.append(px)
         colour = colour_summary(px)
@@ -211,7 +219,8 @@ def analyze_refs(proj):
         beats = grid["beats"]
         refs.append({"path": r["path"], "duration": dur, "cuts": cuts, "shots": len(lens),
                      "median_shot_seconds": round(median, 3), "bpm": grid["bpm"], "beat_source": src,
-                     "beats": beats, "downbeat": grid.get("downbeat", 0), "color": colour, "lut": rel(lut, proj)})
+                     "beats": beats, "downbeat": grid.get("downbeat", 0), "color": colour, "lut": rel(lut, proj),
+                     "motion": mfx})
 
     # Claude's frames: share the budget across references, then dedupe across all of them.
     per = max(1, STYLE_IMAGE_BUDGET // len(all_frames))
@@ -239,6 +248,7 @@ def analyze_refs(proj):
         "bpm": lead["bpm"], "beat_source": lead["beat_source"],
         "color": pooled, "source_color": src_colour, "lut": rel(lut_all, proj),
         "text_color": "#ffffff" if bright else "#111111",
+        "motion": pooled_motion(refs),
         "refs": refs,
         "claude_images": [rel(c["path"], proj) for c in chosen],
     }
@@ -246,6 +256,20 @@ def analyze_refs(proj):
     write_json(work / "style.json", style, compact=True)
     print(f"analysed {len(refs)} reference(s): median shot {style['median_shot_seconds']}s, "
           f"{style['bpm']} BPM ({style['beat_source']}), {len(style['claude_images'])} frames -> work/style.json")
+
+
+def pooled_motion(refs):
+    """Rate per 10 s, typical duration/strength and on-beat share of each effect over all references."""
+    total = sum(r["duration"] for r in refs) or 1.0
+    out = {}
+    for k in ("flash", "shake", "zoom", "ramp"):
+        ev = [e for r in refs for e in r["motion"][k]["events"]]
+        n_on = sum(r["motion"][k]["on_beat_share"] * len(r["motion"][k]["events"]) for r in refs)
+        out[k] = {"count": len(ev), "rate_per_10s": round(10 * len(ev) / total, 2),
+                  "typical_duration": round(statistics.median([e["duration"] for e in ev]), 3) if ev else 0.0,
+                  "strength": round(statistics.median([e["strength"] for e in ev]), 3) if ev else 0.0,
+                  "on_beat_share": round(n_on / len(ev), 2) if ev else 0.0}
+    return out
 
 
 TEXT_BUDGET = 60_000
@@ -260,6 +284,10 @@ def shrink_to_budget(proj, style, idx):
         return
     detail.mkdir(exist_ok=True)
     for k, r in enumerate(style["refs"]):
+        for m in r["motion"].values():
+            if len(m["events"]) > 24:
+                m["events_count"] = len(m["events"])
+                m["events"] = m["events"][:24]
         for key in ("beats", "cuts"):
             if len(r[key]) > 64:
                 side = detail / f"ref{k + 1}_{key}.json"

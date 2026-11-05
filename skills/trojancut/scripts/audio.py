@@ -84,7 +84,9 @@ def beat_track(x):
     e = env / (env.max() + 1e-12)
     e0 = e - e.mean()
     n = len(e0)
-    ac = np.correlate(e0, e0, mode="full")[n - 1:]
+    nfft = 1 << (2 * n - 1).bit_length()
+    spec = np.fft.rfft(e0, nfft)
+    ac = np.fft.irfft(spec * np.conj(spec), nfft)[:n]
     ac = ac / (np.arange(n, 0, -1))
     if ac[0] <= 0:
         return {"bpm": 0.0, "beats": [], "downbeat": 0, "confidence": 0.0, "duration": dur}
