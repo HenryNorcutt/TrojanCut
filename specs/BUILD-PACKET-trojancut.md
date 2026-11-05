@@ -1,8 +1,10 @@
 # BUILD-PACKET: trojancut
-status: ready
+status: building
 tier: L     runs-on: cloud     model: opus     effort: medium
 repo: HenryNorcutt/TrojanCut   base-branch: main   work-branch: claude/trojancut, or the session's assigned claude/* branch if that name can't be pushed
-packet-version: 1    created: 2026-11-05
+packet-version: 2    created: 2026-11-05
+v2 change: the primary flow is now a downloadable project template zip (AB12, AB13, AB11
+  rewritten). Q&A in chat is only the fallback. Everything else unchanged.
 
 ## Read first
 - CLAUDE.md on main already holds Henry's guidelines verbatim. Keep it as is; add project notes
@@ -35,8 +37,9 @@ Protected (read-only once the plan pass ends): this packet, tests/acceptance/tro
 
 ## Goal
 TrojanCut is a Claude skill that edits videos for Henry's brother (Windows, Claude Pro plan). He
-types /trojancut in a normal claude.ai chat, uploads footage, images and logos (zips allowed), then
-reference videos, answers a few questions, and gets back an MP4 that follows the references' cut
+types /trojancut in a normal claude.ai chat and gets a template project zip to download. He drops
+footage, images, logos, references and music into its folders, fills in notes.txt, zips it, and
+sends it back with /trojancut in one message. He gets back an MP4 that follows the references' cut
 rhythm, colour and text style, with transitions, effects and motion graphics, within his min/max
 length. The same skill also works in Claude Code on his PC. Heavy lifting (probing, cut/beat/colour
 analysis, rendering) is Python + ffmpeg + HyperFrames; Claude only reads compact JSON and a capped
@@ -61,6 +64,10 @@ one-line reason on failure.
   brief.yaml (shape: tests/e2e/make_fixtures.py BRIEF). Outputs: P/work/index.json,
   P/work/style.json, P/work/plan.json, P/out/final.mp4, P/out/report.json.
 - `package --out D` - writes D/trojancut.zip with top folder trojancut/.
+- `template --out D` - writes D/TrojanCut-Project.zip (see AB12).
+- `open Z P` - unpacks one or more project zips Z (repeatable flag or several args) into P and
+  writes P/brief.yaml from P/notes.txt (see AB13). brief.yaml stays the internal format the other
+  commands read.
 - env TROJANCUT_ENGINE: auto (default; HyperFrames when Node + package usable, else ffmpeg) or ffmpeg.
 - index.json and style.json each carry `claude_images`: paths relative to P, the only images
   SKILL.md tells Claude to look at.
@@ -99,13 +106,38 @@ AB9: WHEN `check P` runs THE SYSTEM SHALL write report.json with ok true/false p
 AB10: WHEN `package --out D` runs THE SYSTEM SHALL write a ZIP under 15 MB with SKILL.md (name
   trojancut, description <= 1024 chars, no angle brackets) and scripts/, without node_modules
   or .pyc.
-AB11: WHEN /trojancut is invoked in chat THE SKILL SHALL (per SKILL.md) ask for footage and
-  assets first (zips welcome), then references, then the brief questions (min/max length,
-  aspect, music, logo position, title text, match level, effects intensity, must-include,
-  avoid) in one message; copy uploads from /mnt/user-data/uploads into a project dir; run the
-  pipeline; look only at claude_images; may edit plan.json and must re-run validate; render,
-  check, and deliver the MP4 to /mnt/user-data/outputs when that dir exists. It SHALL work the
-  same in Claude Code with a local project folder.
+AB11: WHEN /trojancut is invoked in chat with no project zip attached THE SKILL SHALL (per
+  SKILL.md) run `template` and hand TrojanCut-Project.zip to the user (in /mnt/user-data/outputs
+  when that dir exists) with three short steps (fill folders, fill notes.txt, zip and send back).
+  WHEN invoked with project zip(s) attached THE SKILL SHALL run `open`, then the pipeline, look
+  only at claude_images, optionally edit plan.json and re-run validate, render, check, and deliver
+  the MP4 to /mnt/user-data/outputs when that dir exists. It SHALL ask the user at most one
+  message of questions, and only when notes.txt is missing or contradicts the files (e.g. names a
+  logo that isn't there). In Claude Code the same flow SHALL work with a local folder or zip path.
+AB12: WHEN `template --out D` runs THE SYSTEM SHALL write TrojanCut-Project.zip containing
+  folders footage/, assets/, refs/, music/ (each with a one-line README.txt saying what goes in
+  it), a top-level HOW-TO.txt (5 steps, plus: keep each zip under 500 MB, split big shoots into
+  several zips and attach them together), and notes.txt with exactly these questions, one per
+  line as "Question: answer", answers blank or defaulted as shown:
+    Shortest length in seconds: 15
+    Longest length in seconds: 30
+    Shape (vertical / horizontal / square): vertical
+    Music file (name in music folder, or "reference audio"):
+    Copy from the references (cuts / color / text / everything): everything
+    Effects amount (low / medium / high): medium
+    Logo file (name in assets folder):
+    Logo corner (top-left / top-right / bottom-left / bottom-right / none): top-right
+    Title text at the start (blank = none):
+    Must include:
+    Avoid:
+    Anything else:
+AB13: WHEN `open Z P` runs THE SYSTEM SHALL extract the zip(s) whether the folders sit at the
+  zip root or inside one wrapper folder (Windows "Send to > Compressed folder"), ignore __MACOSX
+  and dotfiles, merge several zips into one project, map notes.txt answers to brief.yaml
+  (case-insensitive, extra spaces ignored, blank = default, "vertical" = 9:16, "everything" =
+  full), fill a missing logo/music answer when exactly one candidate file exists, and exit
+  non-zero with a plain-English line naming the problem when notes.txt contradicts the files or
+  a value is unreadable (e.g. shortest > longest).
 E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pytest tests/e2e -q`.
   The build agent must not write or edit this check.
 
@@ -116,7 +148,8 @@ E2E: tests/e2e/test_e2e.py (both engines + package). Checked by: `python3 -m pyt
 | D2 | `python3 -m pytest tests/acceptance/trojancut/test_analyze.py -q` | exit 0 | AB3, AB4 | yes |
 | D3 | `python3 -m pytest tests/acceptance/trojancut/test_plan.py -q` | exit 0 | AB5, AB6 | yes |
 | D4 | `python3 -m pytest tests/acceptance/trojancut/test_render.py -q` | exit 0 | AB7, AB8, AB9 | yes |
-| D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, question list, paths) | yes |
+| D5 | `python3 -m pytest tests/acceptance/trojancut/test_skill.py -q` | exit 0 | AB10, AB11 (static: SKILL.md steps, paths) | yes |
+| D7 | `python3 -m pytest tests/acceptance/trojancut/test_template_open.py -q` | exit 0 | AB12, AB13 (round trip: template -> fill -> zip with and without wrapper folder -> open -> pipeline renders) | yes |
 | D6 | `python3 -m pytest tests/e2e -q` | exit 0 | E2E | yes (verified by coordinator) |
 Use varied inputs in acceptance tests (different clip counts, aspect 16:9 and 1:1, a silent
 reference, a brief with no music, a project with 25 clips for AB4), not just the E2E fixtures.
@@ -129,8 +162,9 @@ M1 Skeleton + engine spike - AB1, AB2 - done when D1. Also render a 5 s HyperFra
 M2 Analysis - AB3, AB4 - done when D2. Frame sampling and near-duplicate removal adapted from
    bradautomates/claude-video (MIT; keep its notice in THIRD_PARTY_NOTICES.md).
 M3 Plan + render + check - AB5..AB9 - done when D3, D4, D6.
-M4 Skill + packaging + docs - AB10, AB11 - done when D5, D6; README covers (a) chat install:
-   download ZIP, Customize > Skills > upload, turn on code execution, /trojancut; (b) Claude Code
+M4 Skill + template + packaging + docs - AB10..AB13 - done when D5, D6, D7; README covers (a) chat install:
+   download ZIP, Customize > Skills > upload, turn on code execution, /trojancut to get the
+   template, fill it, zip it, /trojancut with the zip; (b) Claude Code
    on Windows: install Claude Code, run setup.ps1 (winget: ffmpeg, Python 3.12, Node 22), open the
    repo folder.
 Each milestone: commit and push on green; 3 failed attempts -> revert to last green, report.
@@ -180,6 +214,9 @@ Kill if: D6 still fails after 3 full M3 attempts -> BLOCKED.md with the failing 
 - Beat and cut detection in numpy + ffmpeg scene filter (rejected: librosa / PySceneDetect /
   OpenCV, too heavy to install in every chat).
 - Big uploads come as zips (chat allows 20 files per chat, 500 MB per file).
+- One template zip + notes.txt, sent in one message, is the main flow (rejected: chat Q&A as the
+  main flow, more turns and more Pro usage; rejected: YAML for the user-facing notes, a stray
+  space breaks it).
 
 ## Known gaps and risks
 - Unverified until G2: whether claude.ai chat accepts video uploads into the sandbox and allows npm.
